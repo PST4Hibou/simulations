@@ -5,60 +5,92 @@ using System.Net;
 
 public class player : MonoBehaviour
 {
-    public Transform tilt;
-    public Camera cam;
-    public Transform target;
+    public Transform tilt;       // tilt transform of camera (optional for IBVS response)
+    public Camera cam;           // main camera
+    public Transform target;     // object to track
 
-    UdpClient client;
-    IPEndPoint remoteEndPoint;
+    public float virtualFPS;   // packets per second
 
-    public float rotationScale = 50f;
+    private UdpClient _client;
+    private IPEndPoint _remoteEndPoint;
+    private float _sendTimer = 0f;
+
+    void Awake()
+    {
+        // Keep Unity running even if window loses focus
+        Application.runInBackground = true;
+    }
 
     void Start()
     {
-        client = new UdpClient();
-        remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 5005);
+        _client = new UdpClient();
+        _remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 5005);
     }
-    
+
     void Update()
     {
+        _sendTimer += Time.deltaTime;
+        
+        Debug.Log(_sendTimer + " >= interval? " + (_sendTimer >= 1f / virtualFPS));
+        
+        if (_sendTimer >= 1.00f / virtualFPS)
+        {
+            _sendTimer = 0;   // keep leftover time
+            SendTargetCoordinates();
+        }
+    }
+
+    private void SendTargetCoordinates()
+    {
+        if (cam == null || target == null) return;
+
         Vector3 viewportPoint = cam.WorldToViewportPoint(target.position);
 
+        // Check if target is in the camera's field of view
         bool isVisible =
-            viewportPoint.x is >= 0 and <= 1 &&
-            viewportPoint.y is >= 0 and <= 1;
+            viewportPoint.z > 0 &&
+            viewportPoint.x >= 0 && viewportPoint.x <= 1 &&
+            viewportPoint.y >= 0 && viewportPoint.y <= 1;
 
         if (isVisible)
         {
-            // Normalized coordinates in [-1, 1]
+            // Normalize coordinates to [-1, 1]
             float u = 2f * (viewportPoint.x - 0.5f);
             float v = 2f * (viewportPoint.y - 0.5f);
 
             string message = u + "," + v;
             byte[] data = Encoding.ASCII.GetBytes(message);
 
-            client.Send(data, data.Length, remoteEndPoint);
+            _client.Send(data, data.Length, _remoteEndPoint);
+
+            // Debug.Log("Sending: " + message); // Uncomment for debug
         }
         else
         {
-            // Debug.Log("Target not visible");
+            // Target not visible; optional: send zeros or do nothing
         }
-        
-        
-
-        //     // // Receive response
-        //     // if (client.Available > 0)
-        //     // {
-        //     //     byte[] received = client.Receive(ref remoteEndPoint);
-        //     //     string response = Encoding.ASCII.GetString(received);
-        //     //
-        //     //     string[] values = response.Split(',');
-        //     //     float omega_x = float.Parse(values[0]);
-        //     //     float omega_y = float.Parse(values[1]);
-        //     //
-        //     //     // Apply PTZ rotation
-        //     //     transform.Rotate(0, omega_y * rotationScale * Time.deltaTime, 0);
-        //     //     tilt.Rotate(omega_x * rotationScale * Time.deltaTime, 0, 0);
-        //     // }
     }
+
+    /*
+    // Optional method to receive PTZ velocities from Python
+    private void ReceivePTZCommands()
+    {
+        if (client.Available > 0)
+        {
+            byte[] received = client.Receive(ref remoteEndPoint);
+            string response = Encoding.ASCII.GetString(received);
+
+            string[] values = response.Split(',');
+            if (values.Length >= 2)
+            {
+                if (float.TryParse(values[0], out float omega_x) &&
+                    float.TryParse(values[1], out float omega_y))
+                {
+                    transform.Rotate(0, omega_y * rotationScale * Time.deltaTime, 0);
+                    tilt.Rotate(omega_x * rotationScale * Time.deltaTime, 0, 0);
+                }
+            }
+        }
+    }
+    */
 }
