@@ -1,20 +1,23 @@
 using UnityEngine;
 
-public class drone : MonoBehaviour
-{
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
 
-    // Update is called once per frame
-    void Update()
+namespace script
+{
+    public class Drone : MonoBehaviour
     {
-        transform.position = new Vector3(
-            Mathf.Sin(Time.time/2) * 2,
-            0,
-            5
-        );
+        // Start is called once before the first execution of Update after the MonoBehaviour is created
+        void Start()
+        {
+        }
+
+        // Update is called once per frame
+        void Update()
+        {
+            transform.position = new Vector3(
+                Mathf.Sin(Time.time / 2) * 2,
+                0,
+                5
+            );
+        }
     }
 }
