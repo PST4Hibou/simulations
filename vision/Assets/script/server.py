@@ -16,9 +16,9 @@ print("IBVS Python server running...")
 while True:
     data, addr = sock.recvfrom(1024)
 
-    u, v, Z = map(float, data.decode().split(","))
+    u, v = map(float, data.decode().split(","))
 
-    print(u, v, Z)
+    print(u, v)
 
     omega_x, omega_y = ibvs_ptz(u, v)
 

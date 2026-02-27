@@ -25,24 +25,26 @@ public class player : MonoBehaviour
         Vector3 viewportPoint = cam.WorldToViewportPoint(target.position);
 
         bool isVisible =
-            viewportPoint is { z: > 0, x: >= 0 and <= 1, y: >= 0 and <= 1 };
+            viewportPoint.x is >= 0 and <= 1 &&
+            viewportPoint.y is >= 0 and <= 1;
 
         if (isVisible)
         {
-            float u = viewportPoint.x - 0.5f;
-            float v = viewportPoint.y - 0.5f;
-            float z = viewportPoint.z;
+            // Normalized coordinates in [-1, 1]
+            float u = 2f * (viewportPoint.x - 0.5f);
+            float v = 2f * (viewportPoint.y - 0.5f);
 
-            string message = u + "," + v + "," + z;
+            string message = u + "," + v;
             byte[] data = Encoding.ASCII.GetBytes(message);
 
-            Debug.Log("Sending: " + message);
             client.Send(data, data.Length, remoteEndPoint);
         }
         else
         {
             // Debug.Log("Target not visible");
         }
+        
+        
 
         //     // // Receive response
         //     // if (client.Available > 0)

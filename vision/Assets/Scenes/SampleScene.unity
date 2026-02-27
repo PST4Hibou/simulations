@@ -226,7 +226,7 @@ Transform:
   m_GameObject: {fileID: 291912769}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.31686, y: 0.2218, z: 10}
+  m_LocalPosition: {x: 11, y: 0.2218, z: 10}
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -254,6 +254,7 @@ GameObject:
   m_Component:
   - component: {fileID: 313483760}
   - component: {fileID: 313483759}
+  - component: {fileID: 313483761}
   m_Layer: 0
   m_Name: player
   m_TagString: Untagged
@@ -274,10 +275,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::player
   tilt: {fileID: 0}
-  cam: {fileID: 0}
-  panSpeed: 0
-  tiltSpeed: 0
-  zoomSpeed: 0
+  cam: {fileID: 330585545}
+  target: {fileID: 291912773}
+  rotationScale: 50
 --- !u!4 &313483760
 Transform:
   m_ObjectHideFlags: 0
@@ -294,6 +294,18 @@ Transform:
   - {fileID: 1839324094}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &313483761
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 313483758}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07437bcfd8c046438f5fa622e2becd4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UDPClient
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -320,7 +332,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!20 &330585545
 Camera:
   m_ObjectHideFlags: 0
@@ -339,7 +351,7 @@ Camera:
   m_ShutterSpeed: 0.005
   m_Aperture: 16
   m_FocusDistance: 10
-  m_FocalLength: 50
+  m_FocalLength: 29.926373
   m_BladeCount: 5
   m_Curvature: {x: 2, y: 11}
   m_BarrelClipping: 0.25
@@ -352,9 +364,9 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.28
+  near clip plane: 1
   far clip plane: 1000
-  field of view: 36.1
+  field of view: 25.2
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
