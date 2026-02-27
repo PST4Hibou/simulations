@@ -12,7 +12,7 @@ public class drone : MonoBehaviour
     void Update()
     {
         transform.position = new Vector3(
-            Mathf.Sin(Time.time),
+            Mathf.Sin(Time.time/2) * 2,
             0,
             5
         );
