@@ -40,6 +40,8 @@ namespace script
                 _sendTimer = 0; // keep leftover time
                 SendTargetCoordinates();
             }
+            
+            ReceivePtzCommands();
         }
 
         private void SendTargetCoordinates()
@@ -73,13 +75,13 @@ namespace script
             }
         }
 
-        /*
+        
         // Optional method to receive PTZ velocities from Python
-        private void ReceivePTZCommands()
+        private void ReceivePtzCommands()
         {
-            if (client.Available > 0)
+            if (_client.Available > 0)
             {
-                byte[] received = client.Receive(ref remoteEndPoint);
+                byte[] received = _client.Receive(ref _remoteEndPoint);
                 string response = Encoding.ASCII.GetString(received);
 
                 string[] values = response.Split(',');
@@ -88,12 +90,12 @@ namespace script
                     if (float.TryParse(values[0], out float omega_x) &&
                         float.TryParse(values[1], out float omega_y))
                     {
-                        transform.Rotate(0, omega_y * rotationScale * Time.deltaTime, 0);
-                        tilt.Rotate(omega_x * rotationScale * Time.deltaTime, 0, 0);
+                        transform.Rotate(0, -omega_y * Time.deltaTime, 0);
+                        tilt.Rotate(-omega_x * Time.deltaTime, 0, 0);
                     }
                 }
             }
         }
-        */
+        
     }
 }
