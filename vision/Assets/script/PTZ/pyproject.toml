@@ -1,9 +1,10 @@
 [project]
-name = "vision"
+name = "script"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.13"
 dependencies = [
-    "dotenv>=0.9.9",
+    "hikvisionapi>=0.3.2",
     "numpy>=2.4.2",
+    "python-dotenv>=1.2.1",
 ]
