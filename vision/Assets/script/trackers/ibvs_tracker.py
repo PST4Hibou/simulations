@@ -27,7 +27,7 @@ class IBVSTracker():
         self.prev_zoom = 0.0
         self.missed = 0
 
-    def update(self, boxn: list[float]) -> tuple[int, int, int] | None:
+    def update(self, boxn: list[float] | None) -> tuple[int, int, int] | None:
         """
         boxn: [x1, y1, x2, y2] in normalized coordinates (0–1)
         Returns: (pan_vel, tilt_vel, zoom_vel)

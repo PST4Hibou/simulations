@@ -7,21 +7,32 @@ namespace script
 {
     public class Player : MonoBehaviour
     {
-        public Transform tilt; // tilt transform of camera (optional for IBVS response)
-        public Camera cam; // main camera
-        public Transform target; // object to track
+        [Header("PTZ Limits")] public float panMaxSpeed = 100f; // deg/sec
+        public float tiltMaxSpeed = 50f; // deg/sec
 
-        public float virtualFPS; // packets per second
+        public float tiltMinAngle = -90f;
+        public float tiltMaxAngle = 40f;
+
+        [Header("Motor Dynamics")] public float acceleration = 200f; // deg/sec²
+        public float commandTimeout = 0.3f; // seconds before auto stop
+
+        private float currentPanSpeed;
+        private float currentTiltSpeed;
+
+        private float commandedPan; // last commanded velocity (-10..10)
+        private float commandedTilt;
+
+        private float lastCommandTime;
+
+        // public Transform tilt;
+        public Camera cam;
+        public Transform target;
+
+        public float virtualFPS = 30f;
 
         private UdpClient _client;
         private IPEndPoint _remoteEndPoint;
         private float _sendTimer = 0f;
-
-        void Awake()
-        {
-            // Keep Unity running even if window loses focus
-            Application.runInBackground = true;
-        }
 
         void Start()
         {
@@ -31,52 +42,84 @@ namespace script
 
         void Update()
         {
+            // -------------------------
+            // SEND TRACKING DATA
+            // -------------------------
             _sendTimer += Time.deltaTime;
 
-            Debug.Log(_sendTimer + " >= interval? " + (_sendTimer >= 1f / virtualFPS));
-
-            if (_sendTimer >= 1.00f / virtualFPS)
+            float interval = 1f / virtualFPS;
+            if (_sendTimer >= interval)
             {
-                _sendTimer = 0; // keep leftover time
+                _sendTimer -= interval; // keep leftover precision
                 SendTargetCoordinates();
             }
-            
+
+            // -------------------------
+            // RECEIVE COMMANDS
+            // -------------------------
             ReceivePtzCommands();
+
+            // -------------------------
+            // SAFETY TIMEOUT (like ONVIF PTZ)
+            // -------------------------
+            if (Time.time - lastCommandTime > commandTimeout)
+            {
+                commandedPan = 0f;
+                commandedTilt = 0f;
+            }
+
+            // -------------------------
+            // ALWAYS UPDATE MOTOR
+            // -------------------------
+            ApplyPtzVelocity(commandedTilt, commandedPan);
         }
 
-        private void SendTargetCoordinates()
+        private void ApplyPtzVelocity(float virtualTilt, float virtualPan)
         {
-            if (cam == null || target == null) return;
+            // Clamp input
+            virtualPan = Mathf.Clamp(virtualPan, -10f, 10f);
+            virtualTilt = Mathf.Clamp(virtualTilt, -10f, 10f);
 
-            Vector3 viewportPoint = cam.WorldToViewportPoint(target.position);
+            // Optional deadband (removes jitter)
+            if (Mathf.Abs(virtualPan) < 0.05f) virtualPan = 0f;
+            if (Mathf.Abs(virtualTilt) < 0.05f) virtualTilt = 0f;
 
-            // Check if target is in the camera's field of view
-            bool isVisible =
-                viewportPoint.z > 0 &&
-                viewportPoint.x >= 0 && viewportPoint.x <= 1 &&
-                viewportPoint.y >= 0 && viewportPoint.y <= 1;
+            // Convert to real motor speeds (deg/sec)
+            float targetPanSpeed = (virtualPan / 10f) * panMaxSpeed;
+            float targetTiltSpeed = (virtualTilt / 10f) * tiltMaxSpeed;
 
-            if (isVisible)
-            {
-                // Normalize coordinates to [-1, 1]
-                float u = 2f * (viewportPoint.x - 0.5f);
-                float v = 2f * (viewportPoint.y - 0.5f);
+            // Smooth acceleration
+            currentPanSpeed = Mathf.MoveTowards(
+                currentPanSpeed,
+                targetPanSpeed,
+                acceleration * Time.deltaTime);
 
-                string message = u + "," + v;
-                byte[] data = Encoding.ASCII.GetBytes(message);
+            currentTiltSpeed = Mathf.MoveTowards(
+                currentTiltSpeed,
+                targetTiltSpeed,
+                acceleration * Time.deltaTime);
 
-                _client.Send(data, data.Length, _remoteEndPoint);
+            // ----------------------
+            // PAN (endless)
+            // ----------------------
+            float panDelta = currentPanSpeed * Time.deltaTime;
+            transform.Rotate(0f, -panDelta, 0f, Space.Self);
 
-                // Debug.Log("Sending: " + message); // Uncomment for debug
-            }
-            else
-            {
-                // Target not visible; optional: send zeros or do nothing
-            }
+            // ----------------------
+            // TILT (limited)
+            // ----------------------
+            // float tiltDelta = -currentTiltSpeed * Time.deltaTime;
+
+            // float currentTilt = tilt.localEulerAngles.x;
+            // if (currentTilt > 180f)
+                // currentTilt -= 360f;
+
+            // float newTilt = currentTilt + tiltDelta;
+            // newTilt = Mathf.Clamp(newTilt, tiltMinAngle, tiltMaxAngle);
+
+            // tilt.localRotation = Quaternion.Euler(newTilt, 0f, 0f);
         }
 
-        
-        // Optional method to receive PTZ velocities from Python
         private void ReceivePtzCommands()
         {
             if (_client.Available > 0)
@@ -90,12 +133,49 @@ namespace script
                     if (float.TryParse(values[0], out float omega_x) &&
                         float.TryParse(values[1], out float omega_y))
                     {
-                        transform.Rotate(0, -omega_y * Time.deltaTime, 0);
-                        tilt.Rotate(-omega_x * Time.deltaTime, 0, 0);
+                        commandedPan = omega_x;
+                        commandedTilt = omega_y;
+                        lastCommandTime = Time.time;
                     }
                 }
             }
         }
-        
+
+        private void SendTargetCoordinates()
+        {
+            if (cam == null || target == null)
+            {
+                SendNone();
+                return;
+            }
+
+            Vector3 viewportPoint = cam.WorldToViewportPoint(target.position);
+
+            bool isVisible =
+                viewportPoint.z > 0f && // in front of camera
+                viewportPoint.x >= 0f &&
+                viewportPoint.x <= 1f &&
+                viewportPoint.y >= 0f &&
+                viewportPoint.y <= 1f;
+
+            if (!isVisible)
+            {
+                SendNone();
+                return;
+            }
+
+            float u = (viewportPoint.x);
+            float v = (viewportPoint.y);
+
+            string message = u + "," + v;
+            byte[] data = Encoding.ASCII.GetBytes(message);
+            _client.Send(data, data.Length, _remoteEndPoint);
+        }
+
+        private void SendNone()
+        {
+            byte[] data = Encoding.ASCII.GetBytes("None");
+            _client.Send(data, data.Length, _remoteEndPoint);
+        }
     }
 }
