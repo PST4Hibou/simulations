@@ -1,6 +1,6 @@
-from PTZ.camera.vendors.base_vendor import BaseVendor, PTZAxisRange
-from PTZ.helpers.decorators import Range
-from PTZ.helpers.math import map_range
+from src.camera.vendors.base_vendor import PTZAxisRange, BaseVendor
+from src.helpers.decorators import Range
+from src.helpers.math import map_range
 from hikvisionapi import Client
 
 import threading

@@ -12,7 +12,7 @@ project_root = os.path.abspath(os.path.join(script_dir, ".."))
 
 # Paths
 source_file = os.path.join(project_root, ".env.exemple")
-target_file = os.path.join(project_root, ".env")
+target_file = os.path.join(project_root, "../.env")
 
 # Copy .env if it does not exist
 if not os.path.exists(target_file) and os.path.exists(source_file):

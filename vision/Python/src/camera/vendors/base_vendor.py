@@ -1,9 +1,10 @@
-from PTZ.helpers.decorators import Range
+from src.helpers.decorators import Range
 from dataclasses import dataclass
 from typing import Final
 
 import numpy as np
 import abc
+
 
 
 @dataclass(frozen=True)
