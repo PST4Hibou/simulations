@@ -5,7 +5,7 @@ using System.Net;
 
 namespace script
 {
-    public class Player : MonoBehaviour
+    public class PtzBase : MonoBehaviour
     {
         [Header("PTZ Limits")] public float panMaxSpeed = 100f; // deg/sec
         public float tiltMaxSpeed = 50f; // deg/sec
@@ -16,13 +16,13 @@ namespace script
         [Header("Motor Dynamics")] public float acceleration = 200f; // deg/sec²
         public float commandTimeout = 0.3f; // seconds before auto stop
 
-        private float currentPanSpeed;
-        private float currentTiltSpeed;
+        private float _currentPanSpeed;
+        private float _currentTiltSpeed;
 
-        private float commandedPan; // last commanded velocity (-10..10)
-        private float commandedTilt;
+        private float _commandedPan; // last commanded velocity (-10..10)
+        private float _commandedTilt;
 
-        private float lastCommandTime;
+        private float _lastCommandTime;
 
         // public Transform tilt;
         public Camera cam;
@@ -62,16 +62,16 @@ namespace script
             // -------------------------
             // SAFETY TIMEOUT (like ONVIF PTZ)
             // -------------------------
-            if (Time.time - lastCommandTime > commandTimeout)
+            if (Time.time - _lastCommandTime > commandTimeout)
             {
-                commandedPan = 0f;
-                commandedTilt = 0f;
+                _commandedPan = 0f;
+                _commandedTilt = 0f;
             }
 
             // -------------------------
             // ALWAYS UPDATE MOTOR
             // -------------------------
-            ApplyPtzVelocity(commandedTilt, commandedPan);
+            ApplyPtzVelocity(_commandedTilt, _commandedPan);
         }
 
         private void ApplyPtzVelocity(float virtualTilt, float virtualPan)
@@ -89,20 +89,20 @@ namespace script
             float targetTiltSpeed = (virtualTilt / 10f) * tiltMaxSpeed;
 
             // Smooth acceleration
-            currentPanSpeed = Mathf.MoveTowards(
-                currentPanSpeed,
+            _currentPanSpeed = Mathf.MoveTowards(
+                _currentPanSpeed,
                 targetPanSpeed,
                 acceleration * Time.deltaTime);
 
-            currentTiltSpeed = Mathf.MoveTowards(
-                currentTiltSpeed,
+            _currentTiltSpeed = Mathf.MoveTowards(
+                _currentTiltSpeed,
                 targetTiltSpeed,
                 acceleration * Time.deltaTime);
 
             // ----------------------
             // PAN (endless)
             // ----------------------
-            float panDelta = currentPanSpeed * Time.deltaTime;
+            float panDelta = _currentPanSpeed * Time.deltaTime;
             transform.Rotate(0f, -panDelta, 0f, Space.Self);
 
             // ----------------------
@@ -133,9 +133,9 @@ namespace script
                     if (float.TryParse(values[0], out float omega_x) &&
                         float.TryParse(values[1], out float omega_y))
                     {
-                        commandedPan = omega_x;
-                        commandedTilt = omega_y;
-                        lastCommandTime = Time.time;
+                        _commandedPan = omega_x;
+                        _commandedTilt = omega_y;
+                        _lastCommandTime = Time.time;
                     }
                 }
             }
