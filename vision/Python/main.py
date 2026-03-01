@@ -1,7 +1,6 @@
 from src.trackers.ibvs_tracker import IBVSTracker
-import socket
+from src.network.socket import UDPSocket
 
-HOST = "127.0.0.1"
 PORT = 5005
 
 
@@ -15,7 +14,7 @@ def convert_to_box(u, v, object_size=10):
     ]
 
 
-def handle_ptz_data(data: str, tracker, sock, addr):
+def handle_ptz_data(data: str, tracker, sock):
     try:
         if data == "None":
             controls = tracker.update(None)
@@ -27,44 +26,29 @@ def handle_ptz_data(data: str, tracker, sock, addr):
             pan_vel, tilt_vel, zoom_vel = controls
 
             # Invert tilt if Unity coordinate system differs
-            message = f"PTZ:{pan_vel},{-tilt_vel}"
-            sock.sendto(message.encode("utf-8"), addr)
+            message = f"{pan_vel},{-tilt_vel}"
+            # sock.sendto(message.encode("utf-8"))
+            sock.send("PTZ", message)
 
     except Exception as e:
         print("Error processing PTZ data:", e)
 
 
-def main():
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind((HOST, PORT))
-
-    print(f"IBVS Python server running on {HOST}:{PORT}")
+if __name__ == "__main__":
+    sock = UDPSocket(local_port=PORT)
+    print(f"IBVS Python server running on 127.0.0.1 :{PORT}")
 
     tracker = IBVSTracker()
 
     try:
         while True:
-            block, addr = sock.recvfrom(1024)
-
-            message = block.decode("utf-8").strip()
-            print("Received:", message)
-
-            # Validate format
-            if ":" not in message:
-                print("Invalid packet format")
-                continue
-
-            header, data = message.split(":", maxsplit=1)
+            header, data = sock.receive()
 
             if header == "PTZ":
-                handle_ptz_data(data, tracker, sock, addr)
+                handle_ptz_data(data, tracker, sock)
 
     except KeyboardInterrupt:
         print("\nShutting down server...")
 
     finally:
         sock.close()
-
-
-if __name__ == "__main__":
-    main()
