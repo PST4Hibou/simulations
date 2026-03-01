@@ -7,14 +7,16 @@ namespace script
 {
     public class PtzBase : MonoBehaviour
     {
-        [Header("PTZ Limits")] public float panMaxSpeed = 100f; // deg/sec
+        [Header("PTZ Limits")]
+        public float panMaxSpeed = 100f; // deg/sec
         public float tiltMaxSpeed = 50f; // deg/sec
 
         public float tiltMinAngle = -90f;
         public float tiltMaxAngle = 40f;
 
-        [Header("Motor Dynamics")] public float acceleration = 200f; // deg/sec²
-        public float commandTimeout = 0.3f; // seconds before auto stop
+        [Header("Motor Dynamics")]
+        public float acceleration = 200f; // deg/sec²
+        // public float commandTimeout = 0.3f; // seconds before auto stop
 
         private float _currentPanSpeed;
         private float _currentTiltSpeed;
@@ -31,15 +33,7 @@ namespace script
 
         public float virtualFPS = 30f;
 
-        private UdpClient _client;
-        private IPEndPoint _remoteEndPoint;
         private float _sendTimer = 0f;
-
-        void Start()
-        {
-            _client = new UdpClient();
-            _remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 5005);
-        }
 
         void Update()
         {
@@ -63,11 +57,11 @@ namespace script
             // -------------------------
             // SAFETY TIMEOUT (like ONVIF PTZ)
             // -------------------------
-            if (Time.time - _lastCommandTime > commandTimeout)
-            {
-                _commandedPan = 0f;
-                _commandedTilt = 0f;
-            }
+            // if (Time.time - _lastCommandTime > commandTimeout)
+            // {
+            //     _commandedPan = 0f;
+            //     _commandedTilt = 0f;
+            // }
 
             // -------------------------
             // ALWAYS UPDATE MOTOR
@@ -127,12 +121,15 @@ namespace script
 
         private void ReceivePtzCommands()
         {
-            if (_client.Available > 0)
-            {
-                byte[] received = _client.Receive(ref _remoteEndPoint);
-                string response = Encoding.ASCII.GetString(received);
+            if (UdpManager.Instance == null) return;
 
-                string[] values = response.Split(',');
+            // Keep reading all PTZ messages from the queue
+            while (UdpManager.Instance.TryGetMessage("PTZ", out string data))
+            {
+                if (string.IsNullOrEmpty(data))
+                    continue;
+                
+                string[] values = data.Split(',');
                 if (values.Length >= 2)
                 {
                     if (float.TryParse(values[0], out float omega_x) &&
@@ -142,6 +139,14 @@ namespace script
                         _commandedTilt = omega_y;
                         _lastCommandTime = Time.time;
                     }
+                    else
+                    {
+                        Debug.LogWarning($"Failed to parse PTZ values: {data}");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"Invalid PTZ message format: {data}");
                 }
             }
         }
@@ -173,14 +178,12 @@ namespace script
             float v = (viewportPoint.y);
 
             string message = u + "," + v;
-            byte[] data = Encoding.ASCII.GetBytes(message);
-            _client.Send(data, data.Length, _remoteEndPoint);
+            UdpManager.Instance.Send("PTZ", message);
         }
 
         private void SendNone()
         {
-            byte[] data = Encoding.ASCII.GetBytes("None");
-            _client.Send(data, data.Length, _remoteEndPoint);
+            UdpManager.Instance.Send("PTZ", "None");
         }
     }
 }

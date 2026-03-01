@@ -1,44 +1,70 @@
-from src.camera.vendors.hikvision.ds_2dy9250iax_a import DS2DY9250IAXA
-from src.camera.ptz_controller import PTZController
 from src.trackers.ibvs_tracker import IBVSTracker
-from src.settings import SETTINGS
 import socket
 
+HOST = "127.0.0.1"
+PORT = 5005
 
-if __name__ == "__main__":
-    # PTZController(
-    #     "main_camera",
-    #     DS2DY9250IAXA,
-    #     host=SETTINGS.PTZ_HOST,
-    #     username=SETTINGS.PTZ_USERNAME,
-    #     password=SETTINGS.PTZ_PASSWORD,
-    #     start_azimuth=SETTINGS.PTZ_START_AZIMUTH,
-    #     end_azimuth=SETTINGS.PTZ_END_AZIMUTH,
-    #     rtsp_port=SETTINGS.PTZ_RTSP_PORT,
-    #     video_channel=SETTINGS.PTZ_VIDEO_CHANNEL,
-    # )
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(("127.0.0.1", 5005))
+def convert_to_box(u, v, object_size=10):
+    half_size = object_size / 2
+    return [
+        u - half_size,
+        v - half_size,
+        u + half_size,
+        v + half_size,
+    ]
 
-    print("IBVS Python server running...")
 
-    tracker = IBVSTracker()
-
-    def convert_to_box(u, v, object_size= 10):
-        return [u - object_size / 2, v - object_size / 2, u + object_size / 2, v + object_size / 2]
-
-    while True:
-        data, addr = sock.recvfrom(1024)
-
-        if data.decode() == "None":
+def handle_ptz_data(data: str, tracker, sock, addr):
+    try:
+        if data == "None":
             controls = tracker.update(None)
         else:
-            u, v = map(float, data.decode().split(","))
+            u, v = map(float, data.split(","))
             controls = tracker.update(convert_to_box(u, v))
 
         if controls is not None:
             pan_vel, tilt_vel, zoom_vel = controls
-            message = f"{pan_vel},{-tilt_vel}"
-            print(message)
-            sock.sendto(message.encode(), addr)
+
+            # Invert tilt if Unity coordinate system differs
+            message = f"PTZ:{pan_vel},{-tilt_vel}"
+            sock.sendto(message.encode("utf-8"), addr)
+
+    except Exception as e:
+        print("Error processing PTZ data:", e)
+
+
+def main():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind((HOST, PORT))
+
+    print(f"IBVS Python server running on {HOST}:{PORT}")
+
+    tracker = IBVSTracker()
+
+    try:
+        while True:
+            block, addr = sock.recvfrom(1024)
+
+            message = block.decode("utf-8").strip()
+            print("Received:", message)
+
+            # Validate format
+            if ":" not in message:
+                print("Invalid packet format")
+                continue
+
+            header, data = message.split(":", maxsplit=1)
+
+            if header == "PTZ":
+                handle_ptz_data(data, tracker, sock, addr)
+
+    except KeyboardInterrupt:
+        print("\nShutting down server...")
+
+    finally:
+        sock.close()
+
+
+if __name__ == "__main__":
+    main()
