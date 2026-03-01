@@ -15,7 +15,7 @@ namespace script
         {
             transform.position = new Vector3(
                 Mathf.Sin(Time.time / 5) * 100,
-                0,
+                Mathf.Sin(Time.time / 5) * 10,
                 40
             );
         }

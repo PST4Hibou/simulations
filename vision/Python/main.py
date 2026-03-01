@@ -39,5 +39,6 @@ if __name__ == "__main__":
 
         if controls is not None:
             pan_vel, tilt_vel, zoom_vel = controls
-            message = f"{pan_vel},{tilt_vel}"
+            message = f"{pan_vel},{-tilt_vel}"
+            print(message)
             sock.sendto(message.encode(), addr)

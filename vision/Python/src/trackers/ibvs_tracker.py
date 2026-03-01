@@ -19,7 +19,7 @@ class IBVSTracker():
     LAMBDA_ZOOM = 0.0008  # slightly higher for log-scale
 
     # Smoothing factor (0 = no smoothing, 1 = frozen output)
-    SMOOTHING_ALPHA = 0.7
+    SMOOTHING_ALPHA = 0.9
 
     def __init__(self):
         self.prev_pan = 0.0

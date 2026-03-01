@@ -280,6 +280,7 @@ MonoBehaviour:
   tiltMaxAngle: 40
   acceleration: 200
   commandTimeout: 0.3
+  tiltNode: {fileID: 866313020}
   cam: {fileID: 330585545}
   target: {fileID: 291912773}
   virtualFPS: 10
@@ -312,6 +313,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb4f60854a52474b9d1ebd1419dc2879, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::script.RotationCsvLogger
+  enable: 1
+  tiltNode: {fileID: 866313020}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0

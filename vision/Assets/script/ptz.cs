@@ -25,6 +25,7 @@ namespace script
         private float _lastCommandTime;
 
         // public Transform tilt;
+        public Transform tiltNode;
         public Camera cam;
         public Transform target;
 
@@ -108,16 +109,20 @@ namespace script
             // ----------------------
             // TILT (limited)
             // ----------------------
-            // float tiltDelta = -currentTiltSpeed * Time.deltaTime;
+            float tiltDelta = _currentTiltSpeed * Time.deltaTime;
 
-            // float currentTilt = tilt.localEulerAngles.x;
-            // if (currentTilt > 180f)
-                // currentTilt -= 360f;
+            // Get current tilt in signed form (-180 to 180)
+            float currentTilt = tiltNode.localEulerAngles.x;
+            if (currentTilt > 180f)
+                currentTilt -= 360f;
 
-            // float newTilt = currentTilt + tiltDelta;
-            // newTilt = Mathf.Clamp(newTilt, tiltMinAngle, tiltMaxAngle);
+            // Apply movement (invert sign if direction feels wrong)
+            float newTilt = currentTilt - tiltDelta;
 
-            // tilt.localRotation = Quaternion.Euler(newTilt, 0f, 0f);
+            // Clamp to physical limits
+            newTilt = Mathf.Clamp(newTilt, tiltMinAngle, tiltMaxAngle);
+
+            tiltNode.localRotation = Quaternion.Euler(newTilt, 0f, 0f);
         }
 
         private void ReceivePtzCommands()
