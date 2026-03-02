@@ -15,7 +15,7 @@ class IBVSTracker():
 
     # Control gains
     LAMBDA_PAN = MAX_PAN / 0.3
-    LAMBDA_TILT = MAX_TILT / 0.5
+    LAMBDA_TILT = MAX_TILT / 0.2
     LAMBDA_ZOOM = 0.0008  # slightly higher for log-scale
 
     # Smoothing factor (0 = no smoothing, 1 = frozen output)
@@ -54,7 +54,7 @@ class IBVSTracker():
         # Box center
         box_center_x = (x1 + x2) / 2.0
         box_center_y = (y1 + y2) / 2.0
-        
+
         # Image errors (desired center = 0.5, 0.5)
         error_x = box_center_x - 0.5
         error_y = box_center_y - 0.5

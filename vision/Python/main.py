@@ -12,9 +12,9 @@ def convert_to_box(u, v, object_size=10):
     half_size = object_size / 2
     return [
         u - half_size,
-        v - half_size,
+        ((1 - v) - half_size),
         u + half_size,
-        v + half_size,
+        ((1- v) + half_size),
     ]
 
 
@@ -24,12 +24,13 @@ def handle_ptz_data(data: str, tracker, sock):
             controls = tracker.update(None)
         else:
             u, v = map(float, data.split(","))
-            controls = tracker.update(convert_to_box(u, v))
+            box = convert_to_box(u, v) # Must be converted to box to simulate Yolo box
+            controls = tracker.update(box)
 
         if controls is not None:
             pan_vel, tilt_vel, zoom_vel = controls
 
-            print(f"PTZ: {pan_vel}, {tilt_vel}, {zoom_vel}")
+            # print(f"PTZ: {pan_vel}, {tilt_vel}, {zoom_vel}")
 
             if pan_vel == 0 and tilt_vel == 0:
                 current_pan_vel, current_tilt_vel = PTZController(
@@ -44,7 +45,7 @@ def handle_ptz_data(data: str, tracker, sock):
                     tilt_speed=tilt_vel,
                     clamp=True,
                 )
-                message = f"{pan_vel},{-tilt_vel}"
+                message = f"{pan_vel},{tilt_vel}"
             sock.send("PTZ", message)
 
     except Exception as e:
