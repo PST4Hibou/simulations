@@ -136,6 +136,10 @@ class BaseVendor(abc.ABC):
         """Optional: subclasses can override to provide RTSP or other streams."""
         raise NotImplementedError("This vendor does not implement video streaming.")
 
+    @abc.abstractmethod
+    def get_absolute_ptz_position(self) -> tuple[float, float, int]:
+        raise NotImplementedError("This vendor does not implement absolute positioning.")
+
     def set_absolute_ptz_position(
         self,
         pan: float | None = None,

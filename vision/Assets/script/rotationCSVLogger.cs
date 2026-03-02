@@ -49,8 +49,9 @@ namespace script
             _builder.Append(time).Append(",");
             _builder.Append(pan.ToString("F3")).Append(",");
             _builder.Append(tilt.ToString("F3")).Append("\n");
-
-            File.AppendAllText(_filePath, _builder.ToString());
+            
+            UdpManager.Instance.Send("PTZ_Rotation", _builder.ToString());
+            // File.AppendAllText(_filePath, _builder.ToString());
         }
     }
 }

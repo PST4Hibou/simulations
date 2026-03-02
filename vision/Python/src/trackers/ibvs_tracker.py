@@ -14,12 +14,12 @@ class IBVSTracker():
     MAX_ZOOM = 0.03
 
     # Control gains
-    LAMBDA_PAN = MAX_PAN / 0.5
+    LAMBDA_PAN = MAX_PAN / 0.3
     LAMBDA_TILT = MAX_TILT / 0.5
     LAMBDA_ZOOM = 0.0008  # slightly higher for log-scale
 
     # Smoothing factor (0 = no smoothing, 1 = frozen output)
-    SMOOTHING_ALPHA = 0.9
+    SMOOTHING_ALPHA = 0.4
 
     def __init__(self):
         self.prev_pan = 0.0

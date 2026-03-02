@@ -467,8 +467,8 @@ class DS2DY9250IAXA(BaseVendor):
 
             self._current_pan, self._current_tilt, self._current_zoom = (
                 self._convert_hardware_to_logical(
-                    self._current_elevation,
                     self._current_azimuth,
+                    self._current_elevation,
                     self._current_zoom_hw,
                 )
             )
@@ -494,6 +494,9 @@ class DS2DY9250IAXA(BaseVendor):
 
     def is_initialized(self) -> bool:
         return self._initialized and self._client is not None
+
+    def get_absolute_ptz_position(self) -> tuple[float, float, int]:
+        return self._current_pan, self._current_tilt, self._current_zoom
 
     def get_azimuth(self) -> int:
         """

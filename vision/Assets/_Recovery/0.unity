@@ -274,7 +274,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc6594d6051d0cb5ba8492455c97b06f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::player
-  hardware: {fileID: 11400000, guid: 4cfdbd637c14d604d9f9e5d3c31dba64, type: 2}
+  panMaxSpeed: 100
+  tiltMaxSpeed: 50
+  tiltMinAngle: -90
+  tiltMaxAngle: 40
+  acceleration: 200
   tiltNode: {fileID: 866313020}
   cam: {fileID: 330585545}
   target: {fileID: 291912773}

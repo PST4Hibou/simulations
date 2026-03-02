@@ -1,28 +1,18 @@
-using System.Net.Sockets;
 using UnityEngine;
-using System.Text;
-using System.Net;
 
 namespace script
 {
     public class PtzBase : MonoBehaviour
     {
-        [Header("PTZ Limits")]
-        public float panMaxSpeed = 100f; // deg/sec
-        public float tiltMaxSpeed = 50f; // deg/sec
 
-        public float tiltMinAngle = -90f;
-        public float tiltMaxAngle = 40f;
-
-        [Header("Motor Dynamics")]
-        public float acceleration = 200f; // deg/sec²
-        // public float commandTimeout = 0.3f; // seconds before auto stop
-
+        [Header("Hardware")]
+        public PtzHardwareProfile hardware;
+        
         private float _currentPanSpeed;
         private float _currentTiltSpeed;
 
-        private float _commandedPan; // last commanded velocity (-10..10)
-        private float _commandedTilt;
+        private int _commandedPan; // last commanded velocity (-10..10)
+        private int _commandedTilt;
 
         private float _lastCommandTime;
 
@@ -66,33 +56,34 @@ namespace script
             // -------------------------
             // ALWAYS UPDATE MOTOR
             // -------------------------
-            ApplyPtzVelocity(_commandedTilt, _commandedPan);
+            ApplyPtzVelocity(_commandedPan, _commandedTilt);
         }
 
-        private void ApplyPtzVelocity(float virtualTilt, float virtualPan)
+        private void ApplyPtzVelocity(int virtualPan, int virtualTilt)
         {
+            if (hardware == null)
+            {
+                Debug.LogError("No hardware profile assigned!");
+                return;
+            }
+            
             // Clamp input
-            virtualPan = Mathf.Clamp(virtualPan, -10f, 10f);
-            virtualTilt = Mathf.Clamp(virtualTilt, -10f, 10f);
-
-            // Optional deadband (removes jitter)
-            if (Mathf.Abs(virtualPan) < 0.05f) virtualPan = 0f;
-            if (Mathf.Abs(virtualTilt) < 0.05f) virtualTilt = 0f;
-
-            // Convert to real motor speeds (deg/sec)
-            float targetPanSpeed = (virtualPan / 10f) * panMaxSpeed;
-            float targetTiltSpeed = (virtualTilt / 10f) * tiltMaxSpeed;
+            virtualPan = Mathf.Clamp(virtualPan, -10, 10);
+            virtualTilt = Mathf.Clamp(virtualTilt, -10, 10);
+            
+            float targetPanSpeed = hardware.GetPanSpeed(virtualPan);
+            float targetTiltSpeed = hardware.GetTiltSpeed(virtualTilt);
 
             // Smooth acceleration
             _currentPanSpeed = Mathf.MoveTowards(
                 _currentPanSpeed,
                 targetPanSpeed,
-                acceleration * Time.deltaTime);
+                hardware.acceleration * Time.deltaTime);
 
             _currentTiltSpeed = Mathf.MoveTowards(
                 _currentTiltSpeed,
                 targetTiltSpeed,
-                acceleration * Time.deltaTime);
+                hardware.acceleration * Time.deltaTime);
 
             // ----------------------
             // PAN (endless)
@@ -105,16 +96,12 @@ namespace script
             // ----------------------
             float tiltDelta = _currentTiltSpeed * Time.deltaTime;
 
-            // Get current tilt in signed form (-180 to 180)
             float currentTilt = tiltNode.localEulerAngles.x;
             if (currentTilt > 180f)
                 currentTilt -= 360f;
 
-            // Apply movement (invert sign if direction feels wrong)
             float newTilt = currentTilt - tiltDelta;
-
-            // Clamp to physical limits
-            newTilt = Mathf.Clamp(newTilt, tiltMinAngle, tiltMaxAngle);
+            newTilt = Mathf.Clamp(newTilt, hardware.tiltMaxAngl * -1, hardware.tiltMinAngle * -1);
 
             tiltNode.localRotation = Quaternion.Euler(newTilt, 0f, 0f);
         }
@@ -128,15 +115,15 @@ namespace script
             {
                 if (string.IsNullOrEmpty(data))
                     continue;
-                
+
                 string[] values = data.Split(',');
                 if (values.Length >= 2)
                 {
-                    if (float.TryParse(values[0], out float omega_x) &&
-                        float.TryParse(values[1], out float omega_y))
+                    if (int.TryParse(values[0], out int omegaX) &&
+                        int.TryParse(values[1], out int omegaY))
                     {
-                        _commandedPan = omega_x;
-                        _commandedTilt = omega_y;
+                        _commandedPan = omegaX;
+                        _commandedTilt = omegaY;
                         _lastCommandTime = Time.time;
                     }
                     else
