@@ -54,7 +54,7 @@ class IBVSTracker():
         # Box center
         box_center_x = (x1 + x2) / 2.0
         box_center_y = (y1 + y2) / 2.0
-
+        
         # Image errors (desired center = 0.5, 0.5)
         error_x = box_center_x - 0.5
         error_y = box_center_y - 0.5

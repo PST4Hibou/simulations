@@ -1,5 +1,6 @@
 from src.camera.vendors.hikvision.ds_2dy9250iax_a import DS2DY9250IAXA
 from src.camera.ptz_controller import PTZController
+from src.gui.graph import Graph
 from src.trackers.ibvs_tracker import IBVSTracker
 from src.network.socket import UDPSocket
 from src.settings import SETTINGS
@@ -14,17 +15,25 @@ def convert_to_box(u, v, object_size=10):
         u - half_size,
         ((1 - v) - half_size),
         u + half_size,
-        ((1- v) + half_size),
+        ((1 - v) + half_size),
     ]
 
 
-def handle_ptz_data(data: str, tracker, sock):
+def parse_time_to_seconds(time_str: str) -> float:
+    h, m, s, ms = map(int, time_str.split(":"))
+    return h * 3600 + m * 60 + s + ms / 1000.0
+
+def to_signed_angle(angle_0_360: float) -> float:
+    return (angle_0_360 + 180) % 360 - 180
+
+
+def handle_ptz_data(data: str):
     try:
         if data == "None":
             controls = tracker.update(None)
         else:
             u, v = map(float, data.split(","))
-            box = convert_to_box(u, v) # Must be converted to box to simulate Yolo box
+            box = convert_to_box(u, v)  # Must be converted to box to simulate Yolo box
             controls = tracker.update(box)
 
         if controls is not None:
@@ -52,6 +61,25 @@ def handle_ptz_data(data: str, tracker, sock):
         print("Error processing PTZ data:", e)
 
 
+def handle_ptz_rotation_data(data: str):
+    try:
+        parts = data.split(",")
+
+        time_str = parts[0]
+        pan, tilt = map(float, parts[1:])
+
+        timestamp = parse_time_to_seconds(time_str)
+
+        print(f"PTZ Rotation: {timestamp:.3f}, {pan}, {tilt}")
+
+        PTZController("main_camera").get_status(force_update=True)
+        pan_real, tilt_real, _ = PTZController("main_camera").get_absolute_ptz_position()
+        graph.update(timestamp, pan, to_signed_angle(pan_real))
+
+    except Exception as e:
+        print("Error processing PTZ Rotation data:", e)
+
+
 if __name__ == "__main__":
     sock = UDPSocket(local_port=PORT)
     print(f"IBVS Python server running on 127.0.0.1 :{PORT}")
@@ -68,6 +96,8 @@ if __name__ == "__main__":
         video_channel=SETTINGS.PTZ_VIDEO_CHANNEL,
     )
 
+    graph = Graph(window_seconds=10)
+
     tracker = IBVSTracker()
 
     PTZController("main_camera").set_absolute_ptz_position(pan=1, tilt=1, zoom=1)
@@ -78,9 +108,11 @@ if __name__ == "__main__":
             header, data = sock.receive()
 
             if header == "PTZ":
-                handle_ptz_data(data, tracker, sock)
-            # else:
-            #     print(f"Unknown header: {header} {data}")
+                handle_ptz_data(data)
+            elif header == "PTZ_Rotation":
+                handle_ptz_rotation_data(data)
+            else:
+                print(f"Unknown header: {header}")
 
     except KeyboardInterrupt:
         print("\nShutting down server...")
@@ -88,6 +120,7 @@ if __name__ == "__main__":
     finally:
         PTZController("main_camera").stop_continuous()
         PTZController("main_camera").release_stream()
+        graph.stop()
         PTZController.remove()
         sock.send("PTZ", f"{0},{0}")
         sock.close()
