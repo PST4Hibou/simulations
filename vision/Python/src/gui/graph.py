@@ -4,28 +4,50 @@ from collections import deque
 class Graph:
     def __init__(self, window_seconds=20):
         self.window_seconds = window_seconds
-        self.start_time = None
 
-        self.times = deque()
-        self.unity_values = deque()
-        self.real_values = deque()
-        self.diff_values = deque()
+        # ----- PAN -----
+        self.start_time_pan = None
+        self.times_pan = deque()
+        self.unity_pan = deque()
+        self.real_pan = deque()
+        self.diff_pan = deque()
+        self.last_unity_pan = None
+        self.last_real_pan = None
 
-        self.last_unity = None
-        self.last_real = None
+        # ----- TILT -----
+        self.start_time_tilt = None
+        self.times_tilt = deque()
+        self.unity_tilt = deque()
+        self.real_tilt = deque()
+        self.diff_tilt = deque()
+        self.last_unity_tilt = None
+        self.last_real_tilt = None
 
         plt.ion()
-        self.fig, self.ax = plt.subplots()
 
-        self.unity_line, = self.ax.plot([], [], label="Unity")
-        self.real_line, = self.ax.plot([], [], label="Real")
-        self.diff_line, = self.ax.plot([], [], label="Diff", linestyle="--")
+        # Create two subplots (PAN top, TILT bottom)
+        self.fig, (self.ax_pan, self.ax_tilt) = plt.subplots(2, 1, sharex=False, figsize=(14, 8))
 
-        self.ax.set_xlabel("Time (s)")
-        self.ax.set_ylabel("PAN (deg)")
-        self.ax.set_ylim(-180, 180)
-        self.ax.legend()
-        self.ax.grid(True)
+        # ----- PAN plot -----
+        self.unity_line_pan, = self.ax_pan.plot([], [], label="Unity PAN")
+        self.real_line_pan, = self.ax_pan.plot([], [], label="Real PAN")
+        self.diff_line_pan, = self.ax_pan.plot([], [], linestyle="--", label="Diff PAN")
+
+        self.ax_pan.set_ylabel("PAN (deg)")
+        self.ax_pan.set_ylim(-180, 180)
+        self.ax_pan.legend()
+        self.ax_pan.grid(True)
+
+        # ----- TILT plot -----
+        self.unity_line_tilt, = self.ax_tilt.plot([], [], label="Unity TILT")
+        self.real_line_tilt, = self.ax_tilt.plot([], [], label="Real TILT")
+        self.diff_line_tilt, = self.ax_tilt.plot([], [], linestyle="--", label="Diff TILT")
+
+        self.ax_tilt.set_xlabel("Time (s)")
+        self.ax_tilt.set_ylabel("TILT (deg)")
+        self.ax_tilt.set_ylim(-95, 50)
+        self.ax_tilt.legend()
+        self.ax_tilt.grid(True)
 
     def stop(self):
         plt.ioff()
@@ -36,48 +58,83 @@ class Graph:
         except Exception:
             pass
 
-    def update(self, timestamp, pan_unity=None, pan_real=None):
-        if self.start_time is None:
-            self.start_time = timestamp
+    # -------------------- PAN --------------------
+    def update_pan(self, timestamp, pan_unity=None, pan_real=None):
+        if self.start_time_pan is None:
+            self.start_time_pan = timestamp
 
-        relative_time = timestamp - self.start_time
+        relative_time = timestamp - self.start_time_pan
 
-        # Update last known values if new ones arrived
         if pan_unity is not None:
-            self.last_unity = pan_unity
-
+            self.last_unity_pan = pan_unity
         if pan_real is not None:
-            self.last_real = pan_real
+            self.last_real_pan = pan_real
 
-        # If we don't have both yet, don't plot
-        if self.last_unity is None or self.last_real is None:
+        if self.last_unity_pan is None or self.last_real_pan is None:
             return
 
-        # diff = self.last_unity - self.last_real
-        diff = (self.last_unity - self.last_real + 180) % 360 - 180
+        diff = (self.last_unity_pan - self.last_real_pan + 180) % 360 - 180
 
-        self.times.append(relative_time)
-        self.unity_values.append(self.last_unity)
-        self.real_values.append(self.last_real)
-        self.diff_values.append(diff)
+        self.times_pan.append(relative_time)
+        self.unity_pan.append(self.last_unity_pan)
+        self.real_pan.append(self.last_real_pan)
+        self.diff_pan.append(diff)
 
-        # Remove old values outside window
-        while self.times and (self.times[-1] - self.times[0] > self.window_seconds):
-            self.times.popleft()
-            self.unity_values.popleft()
-            self.real_values.popleft()
-            self.diff_values.popleft()
+        while self.times_pan and (self.times_pan[-1] - self.times_pan[0] > self.window_seconds):
+            self.times_pan.popleft()
+            self.unity_pan.popleft()
+            self.real_pan.popleft()
+            self.diff_pan.popleft()
 
-        # Update plot data
-        self.unity_line.set_data(self.times, self.unity_values)
-        self.real_line.set_data(self.times, self.real_values)
-        self.diff_line.set_data(self.times, self.diff_values)
+        self.unity_line_pan.set_data(self.times_pan, self.unity_pan)
+        self.real_line_pan.set_data(self.times_pan, self.real_pan)
+        self.diff_line_pan.set_data(self.times_pan, self.diff_pan)
 
-        # Only update X axis scrolling
-        self.ax.set_xlim(
+        self.ax_pan.set_xlim(
             max(0, relative_time - self.window_seconds),
             relative_time
         )
 
-        self.fig.canvas.draw()
+        # self.fig.canvas.draw()
+        # self.fig.canvas.flush_events()
+
+    # -------------------- TILT --------------------
+    def update_tilt(self, timestamp, tilt_unity=None, tilt_real=None):
+        if self.start_time_tilt is None:
+            self.start_time_tilt = timestamp
+
+        relative_time = timestamp - self.start_time_tilt
+
+        if tilt_unity is not None:
+            self.last_unity_tilt = tilt_unity
+        if tilt_real is not None:
+            self.last_real_tilt = tilt_real
+
+        if self.last_unity_tilt is None or self.last_real_tilt is None:
+            return
+
+        diff = (self.last_unity_tilt - self.last_real_tilt + 180) % 360 - 180
+
+        self.times_tilt.append(relative_time)
+        self.unity_tilt.append(self.last_unity_tilt)
+        self.real_tilt.append(self.last_real_tilt)
+        self.diff_tilt.append(diff)
+
+        while self.times_tilt and (self.times_tilt[-1] - self.times_tilt[0] > self.window_seconds):
+            self.times_tilt.popleft()
+            self.unity_tilt.popleft()
+            self.real_tilt.popleft()
+            self.diff_tilt.popleft()
+
+        self.unity_line_tilt.set_data(self.times_tilt, self.unity_tilt)
+        self.real_line_tilt.set_data(self.times_tilt, self.real_tilt)
+        self.diff_line_tilt.set_data(self.times_tilt, self.diff_tilt)
+
+        self.ax_tilt.set_xlim(
+            max(0, relative_time - self.window_seconds),
+            relative_time
+        )
+
+    def update(self):
+        self.fig.canvas.draw_idle()
         self.fig.canvas.flush_events()

@@ -62,7 +62,6 @@ def handle_ptz_data(data: str):
 
 
 def handle_ptz_rotation_data(data: str):
-    try:
         parts = data.split(",")
 
         time_str = parts[0]
@@ -74,10 +73,9 @@ def handle_ptz_rotation_data(data: str):
 
         PTZController("main_camera").get_status(force_update=True)
         pan_real, tilt_real, _ = PTZController("main_camera").get_absolute_ptz_position()
-        graph.update(timestamp, pan, to_signed_angle(pan_real))
-
-    except Exception as e:
-        print("Error processing PTZ Rotation data:", e)
+        graph.update_pan(timestamp, pan, to_signed_angle(pan_real))
+        graph.update_tilt(timestamp, -tilt, tilt_real)
+        graph.update()
 
 
 if __name__ == "__main__":
@@ -113,6 +111,7 @@ if __name__ == "__main__":
                 handle_ptz_rotation_data(data)
             else:
                 print(f"Unknown header: {header}")
+
 
     except KeyboardInterrupt:
         print("\nShutting down server...")
