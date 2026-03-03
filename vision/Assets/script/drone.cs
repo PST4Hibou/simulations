@@ -5,6 +5,11 @@ namespace script
 {
     public class Drone : MonoBehaviour
     {
+        void Start()
+        {
+            Renderer renderer = GetComponent<Renderer>();
+            renderer.material.color = Color.red;
+        }
         // Update is called once per frame
         void Update()
         {

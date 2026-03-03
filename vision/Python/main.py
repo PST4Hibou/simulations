@@ -1,10 +1,10 @@
 from src.camera.vendors.hikvision.ds_2dy9250iax_a import DS2DY9250IAXA
 from src.camera.ptz_controller import PTZController
-from src.gui.graph import Graph
 from src.trackers.ibvs_tracker import IBVSTracker
 from src.network.socket import UDPSocket
 from src.settings import SETTINGS
-from time import sleep
+from src.gui.graph import Graph
+from time import sleep, time
 
 PORT = 5005
 
@@ -35,6 +35,8 @@ def handle_ptz_data(data: str):
             u, v = map(float, data.split(","))
             box = convert_to_box(u, v)  # Must be converted to box to simulate Yolo box
             controls = tracker.update(box)
+
+            graph.update_box_center(time(), u, v)
 
         if controls is not None:
             pan_vel, tilt_vel, zoom_vel = controls
@@ -94,7 +96,7 @@ if __name__ == "__main__":
         video_channel=SETTINGS.PTZ_VIDEO_CHANNEL,
     )
 
-    graph = Graph(window_seconds=10)
+    graph = Graph(window_seconds=30)
 
     tracker = IBVSTracker()
 

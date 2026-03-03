@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from collections import deque
 
+
 class Graph:
     def __init__(self, window_seconds=20):
         self.window_seconds = window_seconds
@@ -23,16 +24,23 @@ class Graph:
         self.last_unity_tilt = None
         self.last_real_tilt = None
 
+        # ----- BOX -----
+        self.start_time_box = None
+        self.times_box = deque()
+        self.box = deque()
+        self.last_box = None
+
         plt.ion()
 
-        # Create two subplots (PAN top, TILT bottom)
-        self.fig, (self.ax_pan, self.ax_tilt) = plt.subplots(2, 1, sharex=False, figsize=(14, 8))
+        # Create subplots FIRST
+        self.fig, (self.ax_pan, self.ax_tilt, self.ax_box) = plt.subplots(
+            3, 1, sharex=False, figsize=(14, 10)
+        )
 
         # ----- PAN plot -----
         self.unity_line_pan, = self.ax_pan.plot([], [], label="Unity PAN")
         self.real_line_pan, = self.ax_pan.plot([], [], label="Real PAN")
         self.diff_line_pan, = self.ax_pan.plot([], [], linestyle="--", label="Diff PAN")
-
         self.ax_pan.set_ylabel("PAN (deg)")
         self.ax_pan.set_ylim(-180, 180)
         self.ax_pan.legend()
@@ -42,12 +50,18 @@ class Graph:
         self.unity_line_tilt, = self.ax_tilt.plot([], [], label="Unity TILT")
         self.real_line_tilt, = self.ax_tilt.plot([], [], label="Real TILT")
         self.diff_line_tilt, = self.ax_tilt.plot([], [], linestyle="--", label="Diff TILT")
-
-        self.ax_tilt.set_xlabel("Time (s)")
         self.ax_tilt.set_ylabel("TILT (deg)")
         self.ax_tilt.set_ylim(-95, 50)
         self.ax_tilt.legend()
         self.ax_tilt.grid(True)
+
+        # ----- BOX plot -----
+        self.box_line, = self.ax_box.plot([], [], label="Box Center Distance")
+        self.ax_box.set_xlabel("Time (s)")
+        self.ax_box.set_ylabel("Distance from Center")
+        self.ax_box.set_ylim(0, 0.75)
+        self.ax_box.legend()
+        self.ax_box.grid(True)
 
     def stop(self):
         plt.ioff()
@@ -131,6 +145,33 @@ class Graph:
         self.diff_line_tilt.set_data(self.times_tilt, self.diff_tilt)
 
         self.ax_tilt.set_xlim(
+            max(0, relative_time - self.window_seconds),
+            relative_time
+        )
+
+    def update_box_center(self, timestamp, u, v):
+        if self.start_time_box is None:
+            self.start_time_box = timestamp
+
+        relative_time = timestamp - self.start_time_box
+
+        # Compute Euclidean distance from center (0.5, 0.5)
+        dist = ((u - 0.5) ** 2 + (v - 0.5) ** 2) ** 0.5
+
+        self.last_box = dist
+
+        self.times_box.append(relative_time)
+        self.box.append(dist)
+
+        # Remove old values outside window
+        while self.times_box and (self.times_box[-1] - self.times_box[0] > self.window_seconds):
+            self.times_box.popleft()
+            self.box.popleft()
+
+        # Update plot
+        self.box_line.set_data(self.times_box, self.box)
+
+        self.ax_box.set_xlim(
             max(0, relative_time - self.window_seconds),
             relative_time
         )
