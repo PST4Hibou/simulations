@@ -1,3 +1,4 @@
+from src.helpers.math import convert_to_box, parse_time_to_seconds, to_signed_angle
 from src.camera.vendors.hikvision.ds_2dy9250iax_a import DS2DY9250IAXA
 from src.camera.ptz_controller import PTZController
 from src.trackers.ibvs_tracker import IBVSTracker
@@ -7,25 +8,6 @@ from src.gui.graph import Graph
 from time import sleep, time
 
 PORT = 5005
-
-
-def convert_to_box(u, v, object_size=10):
-    half_size = object_size / 2
-    return [
-        u - half_size,
-        ((1 - v) - half_size),
-        u + half_size,
-        ((1 - v) + half_size),
-    ]
-
-
-def parse_time_to_seconds(time_str: str) -> float:
-    h, m, s, ms = map(int, time_str.split(":"))
-    return h * 3600 + m * 60 + s + ms / 1000.0
-
-def to_signed_angle(angle_0_360: float) -> float:
-    return (angle_0_360 + 180) % 360 - 180
-
 
 def handle_ptz_data(data: str):
     try:
@@ -41,7 +23,6 @@ def handle_ptz_data(data: str):
         if controls is not None:
             pan_vel, tilt_vel, zoom_vel = controls
 
-            # print(f"PTZ: {pan_vel}, {tilt_vel}, {zoom_vel}")
 
             if pan_vel == 0 and tilt_vel == 0:
                 current_pan_vel, current_tilt_vel = PTZController(
@@ -70,8 +51,6 @@ def handle_ptz_rotation_data(data: str):
         pan, tilt = map(float, parts[1:])
 
         timestamp = parse_time_to_seconds(time_str)
-
-        print(f"PTZ Rotation: {timestamp:.3f}, {pan}, {tilt}")
 
         PTZController("main_camera").get_status(force_update=True)
         pan_real, tilt_real, _ = PTZController("main_camera").get_absolute_ptz_position()
