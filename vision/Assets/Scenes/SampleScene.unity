@@ -133,7 +133,7 @@ GameObject:
   - component: {fileID: 291912770}
   - component: {fileID: 291912774}
   m_Layer: 0
-  m_Name: drone
+  m_Name: Drone
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -244,6 +244,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 303fa915e97e0d7fe89a6531f39d9b2e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::drone
+  seed: 12
+  startPosition: {x: 0, y: 10, z: 100}
+  areaSize: 100
+  minHeight: 20
+  maxHeight: 80
+  minSpeed: 20
+  maxSpeed: 50
+  turnSpeed: 2
+  waypointThreshold: 3
+  heightNoiseScale: 0.2
+  heightNoiseAmplitude: 10
 --- !u!1 &313483758
 GameObject:
   m_ObjectHideFlags: 0

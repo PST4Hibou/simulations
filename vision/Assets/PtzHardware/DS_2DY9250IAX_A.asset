@@ -38,4 +38,4 @@ MonoBehaviour:
   - 45
   tiltMinAngle: -90
   tiltMaxAngl: 40
-  acceleration: 200
+  acceleration: 50
