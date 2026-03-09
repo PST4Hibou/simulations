@@ -2,8 +2,9 @@
 
 ### `Hibou Simulation`
 
+</br>
 
-Simulate vision and audio in Unity.
+Simulate vision and audio (not implemented yet) in Unity.
 
 # Vision simulation
 
@@ -40,21 +41,50 @@ Today following PTZ cameras are supported:
 
 - Hikevision `DS_2DY9250IAX_A`
 
+<img src="./docs/img/DS_2DY9250IAX_A.png" width="800px">
+
+PTZ orientation over time. Both the real and simulated cameras are controlled using velocity commands in a given
+direction, rather than absolute angle positions.
+
 ### Vision Simulation Configuration
 
 #### Unity
 
-##### PTZ Base (Script)
+##### PTZ_Base
 
-| Parameter   | Comment                                               |
-|-------------|-------------------------------------------------------|
-| Hardware    | Select the camera you want to simulate: Movement only |
-| Virtual FPS | Set the FPS of the virtual camera                     |
+###### PTZ Base (Script)
 
-##### Rotation CSV Logger (Script)
+| Parameter   | Comment                                                |
+|-------------|--------------------------------------------------------|
+| Hardware    | Select the camera you want to simulate. Movement only. |
+| Virtual FPS | Set the FPS of the virtual camera                      |
 
-| Parameter | Comment                                   |
-|-----------|-------------------------------------------|
-| Enable    | Enable or disable the rotation CSV logger |
+###### Rotation Logger (Script)
+
+| Parameter | Comment                                                                                |
+|-----------|----------------------------------------------------------------------------------------|
+| Enable    | Enable or disable the rotation logger. Send the camera rotation to the Python backend. |
+
+If `PTZ_ENABLED = True` then it will show cameras rotation over the time in a matplotlib window
+
+##### Drone
+
+###### Drone (Script)
+
+| Parameter | Comment                                    |
+|-----------|--------------------------------------------|
+| Seed      | Random seed, for movement reproductibility |
+| Min Speed | Minimum speed movement                     |
+| Max Speed | Maximum speed movement                     |
 
 #### Python
+
+Settings can be changed in the `.env` file.
+
+| Parameter    | Comment                                        |
+|--------------|------------------------------------------------|
+| PTZ_ENABLED  | Enables real PTZ control to reproduce movement |
+| PTZ_USERNAME | Username used to control the PTZ camera.       |
+| PTZ_PASSWORD | Password for the PTZ camera user.              |
+| PTZ_HOST     | IPv4 address of the PTZ camera                 |
+
