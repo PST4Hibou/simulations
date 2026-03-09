@@ -25,13 +25,12 @@ if not load_dotenv():
 
 @dataclass
 class Settings:
+    PTZ_ENABLED: bool
     PTZ_USERNAME: str
     PTZ_PASSWORD: str
     PTZ_HOST: str
-    PTZ_VIDEO_CHANNEL: int
-    PTZ_RTSP_PORT: int
-    PTZ_START_AZIMUTH: int
-    PTZ_END_AZIMUTH: int
+
+    SOCKET_PORT: int
 
 
 
@@ -55,13 +54,11 @@ try:
         Settings.CV_VIDEO_PLAYBACK = False
 
     SETTINGS = Settings(
+        PTZ_ENABLED=parse_bool(os.getenv("PTZ_ENABLED")),
         PTZ_USERNAME=os.getenv("PTZ_USERNAME"),
         PTZ_PASSWORD=os.getenv("PTZ_PASSWORD"),
         PTZ_HOST=os.getenv("PTZ_HOST"),
-        PTZ_VIDEO_CHANNEL=int(os.getenv("PTZ_VIDEO_CHANNEL")),
-        PTZ_RTSP_PORT=int(os.getenv("PTZ_RTSP_PORT")),
-        PTZ_START_AZIMUTH=int(os.getenv("PTZ_START_AZIMUTH")),
-        PTZ_END_AZIMUTH=int(os.getenv("PTZ_END_AZIMUTH")),
+        SOCKET_PORT=int(os.getenv("SOCKET_PORT")),
     )
 
 

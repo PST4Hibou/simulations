@@ -7,7 +7,6 @@ from src.settings import SETTINGS
 from src.gui.graph import Graph
 from time import sleep, time
 
-PORT = 5005
 
 def handle_ptz_data(data: str):
     try:
@@ -23,20 +22,21 @@ def handle_ptz_data(data: str):
         if controls is not None:
             pan_vel, tilt_vel, zoom_vel = controls
 
-
             if pan_vel == 0 and tilt_vel == 0:
-                current_pan_vel, current_tilt_vel = PTZController(
-                    "main_camera"
-                ).get_speed()
-                if current_pan_vel != 0 or current_tilt_vel != 0:
-                    PTZController("main_camera").stop_continuous()
+                if SETTINGS.PTZ_ENABLED:
+                    current_pan_vel, current_tilt_vel = PTZController(
+                        "main_camera"
+                    ).get_speed()
+                    if current_pan_vel != 0 or current_tilt_vel != 0:
+                        PTZController("main_camera").stop_continuous()
                 message = f"{0},{0}"
             else:
-                PTZController("main_camera").start_continuous(
-                    pan_speed=-pan_vel,
-                    tilt_speed=tilt_vel,
-                    clamp=True,
-                )
+                if SETTINGS.PTZ_ENABLED:
+                    PTZController("main_camera").start_continuous(
+                        pan_speed=-pan_vel,
+                        tilt_speed=tilt_vel,
+                        clamp=True,
+                    )
                 message = f"{pan_vel},{tilt_vel}"
             sock.send("PTZ", message)
 
@@ -45,13 +45,14 @@ def handle_ptz_data(data: str):
 
 
 def handle_ptz_rotation_data(data: str):
-        parts = data.split(",")
+    parts = data.split(",")
 
-        time_str = parts[0]
-        pan, tilt = map(float, parts[1:])
+    time_str = parts[0]
+    pan, tilt = map(float, parts[1:])
 
-        timestamp = parse_time_to_seconds(time_str)
+    timestamp = parse_time_to_seconds(time_str)
 
+    if SETTINGS.PTZ_ENABLED:
         PTZController("main_camera").get_status(force_update=True)
         pan_real, tilt_real, _ = PTZController("main_camera").get_absolute_ptz_position()
         graph.update_pan(timestamp, pan, to_signed_angle(pan_real))
@@ -60,27 +61,27 @@ def handle_ptz_rotation_data(data: str):
 
 
 if __name__ == "__main__":
-    sock = UDPSocket(local_port=PORT)
-    print(f"IBVS Python server running on 127.0.0.1 :{PORT}")
+    sock = UDPSocket(local_port=SETTINGS.SOCKET_PORT)
+    print(f"IBVS Python server running on 127.0.0.1 :{SETTINGS.SOCKET_PORT}")
 
-    PTZController(
-        "main_camera",
-        DS2DY9250IAXA,
-        host=SETTINGS.PTZ_HOST,
-        username=SETTINGS.PTZ_USERNAME,
-        password=SETTINGS.PTZ_PASSWORD,
-        start_azimuth=SETTINGS.PTZ_START_AZIMUTH,
-        end_azimuth=SETTINGS.PTZ_END_AZIMUTH,
-        rtsp_port=SETTINGS.PTZ_RTSP_PORT,
-        video_channel=SETTINGS.PTZ_VIDEO_CHANNEL,
-    )
+    if SETTINGS.PTZ_ENABLED:
+        PTZController(
+            "main_camera",
+            DS2DY9250IAXA,
+            host=SETTINGS.PTZ_HOST,
+            username=SETTINGS.PTZ_USERNAME,
+            password=SETTINGS.PTZ_PASSWORD,
+            start_azimuth=SETTINGS.PTZ_START_AZIMUTH,
+            end_azimuth=SETTINGS.PTZ_END_AZIMUTH,
+            rtsp_port=SETTINGS.PTZ_RTSP_PORT,
+            video_channel=SETTINGS.PTZ_VIDEO_CHANNEL,
+        )
+        PTZController("main_camera").set_absolute_ptz_position(pan=1, tilt=1, zoom=1)
+        sleep(2)
 
     graph = Graph(window_seconds=30)
 
     tracker = IBVSTracker()
-
-    PTZController("main_camera").set_absolute_ptz_position(pan=1, tilt=1, zoom=1)
-    sleep(2)
 
     try:
         while True:
@@ -98,9 +99,10 @@ if __name__ == "__main__":
         print("\nShutting down server...")
 
     finally:
-        PTZController("main_camera").stop_continuous()
-        PTZController("main_camera").release_stream()
+        if SETTINGS.PTZ_ENABLED:
+            PTZController("main_camera").stop_continuous()
+            PTZController("main_camera").release_stream()
+            PTZController.remove()
         graph.stop()
-        PTZController.remove()
         sock.send("PTZ", f"{0},{0}")
         sock.close()
